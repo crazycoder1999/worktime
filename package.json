@@ -1,0 +1,27 @@
+{
+    "author": "dega1999",
+    "dependencies": {},
+    "keywords": [],
+    "name": "worktime",
+    "pebble": {
+        "capabilities": [
+            ""
+        ],
+        "displayName": "WorkTime",
+        "enableMultiJS": true,
+        "messageKeys": {},
+        "projectType": "native",
+        "resources": {
+            "media": []
+        },
+        "sdkVersion": "3",
+        "targetPlatforms": [
+            "basalt"
+        ],
+        "uuid": "2c8bef12-8fca-42cd-b1af-c4c50f5d5410",
+        "watchapp": {
+            "watchface": false
+        }
+    },
+    "version": "1.0.0"
+}

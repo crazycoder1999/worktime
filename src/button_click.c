@@ -34,11 +34,15 @@ static int timerId = 0;
 
 static char TIME[10];
 static char NOWTIME[20];
-static const char* const Titles[] = { 
+static const char* Titles[] = { 
   "Estimated Exit","Check In","Work Time","Break Dur.",
 };
 
-static const char* const Numbers[] = { 
+static const char* goalPhrases[] = {
+	"It's gone!!"," Oh Yes!!! ","All 4 Today!","You did it!","Let's party!","Ice Ice,Baby","It's done!"
+}; 
+
+static const char* Numbers[] = { 
   "00","01","02","03","04","05","06","07","08","09",
   "10","11","12","13","14","15","16","17","18","19",
   "20","21","22","23","24","25","26","27","28","29",
@@ -56,7 +60,10 @@ static int calcTimer(){
 }
 
 static void saveAndSet() { 
-
+  if (startHours < 0)
+	startHours = 0;
+  if (startMinutes < 0)
+	startMinutes = 0;
   int todoTime = calcTimer();
   time_t rawtime;
   struct tm *timeinfo;
@@ -130,6 +137,10 @@ static void estimateWhen() {
   if(tmpH >= 24 ) {
     tmpH = tmpH - 24;
   }
+  if(tmpH>24)
+	  tmpH = 23;
+  if(tmpH<0)
+	  tmpH = 0;
   strcat(TIME, Numbers[tmpH]);
   strcat(TIME, " : ");
   strcat(TIME, Numbers[tmpM]);
@@ -141,7 +152,14 @@ static void getHourFromStrTime(char *ntime, int *hour,int *min) {
   int i;
   int ch[4];
   int p = 0;
-  for(i=0;ntime[i]!='\0';i++) {    
+  int maxCount = 100;
+  for(i=0;ntime[i]!='\0';i++) {
+	if (i>maxCount) {
+			//DIE BADLY
+		hour = 0;
+		min = 0;
+		return;
+	}
     if( ntime[i] != ':') {
       ch[p] = ntime[i] - '0';
       p++;
@@ -160,7 +178,10 @@ static void getHourFromStrTime(char *ntime, int *hour,int *min) {
 
 //set the first configuration screen to now h/m
 static void upTime(int hour, int minutes) {  
-
+  if (startHours < 0)
+	startHours = 0;
+  if (startMinutes < 0)
+	startMinutes = 0;
   int tmpHours = startHours;
   int tmpMinutes = startMinutes;
 
@@ -271,33 +292,31 @@ static void nextStage() {
     }
   } else if( stage == BREAKSCREEN ) {
     breakSet = true;
-    saveAndSet();
-    estimateWhen();
+    saveAndSet(); 
+    estimateWhen(); 
     layer_remove_from_parent(text_layer_get_layer(hourmin_layer));
     layer_add_child(window_get_root_layer(window), text_layer_get_layer(summary_layer));
     //layer_add_child(window_get_root_layer(window), text_layer_get_layer(reset_layer));
   }
   stage ++;
-  if(stage == NSTAGE) {
+  if(stage >= NSTAGE) {
     stage = 0;
   }
   if(stage != SUMMARYSCREEN) {
-        setMe();
+        setMe(); 
   }
-  upTime(0,0);
+  upTime(0,0); 
 
   text_layer_set_text(help_layer, Titles[stage]);
 
   if( stage == SUMMARYSCREEN ) {
-    text_layer_set_text(lowbtn_layer, "RST");
     text_layer_set_text(highbtn_layer, "");
+	text_layer_set_text(lowbtn_layer, "RST");
   } else {
     text_layer_set_text(highbtn_layer, "Ho+");
     text_layer_set_text(lowbtn_layer, "Mi+");
   }
 }
-
-
 
 static void select_click_handler(ClickRecognizerRef recognizer, void *context) {
   nextStage();
@@ -309,11 +328,13 @@ static void up_click_handler(ClickRecognizerRef recognizer, void *context) {
 }
 
 static void down_click_handler(ClickRecognizerRef recognizer, void *context) {
-  if(stage != SUMMARYSCREEN)
+  if(stage == BREAKSCREEN)
+	upTime(0,5);
+  else if(stage != SUMMARYSCREEN)
     upTime(0,1);
   else {
     commonTextLayer(summary_layer, "Not Set");
-    trashAll(); //!!!! da modificare .. deve essere segnalato
+    trashAll(); 
   }
 }
 
@@ -352,13 +373,18 @@ static void window_load(Window *window) {
       commonTextLayer(summary_layer, "Not Set");
   else{
       commonTextLayer(summary_layer, "");
-      estimateWhen();
+      estimateWhen(); //da controllare.. potrebbe avere problemi lei..
   }
   
   wakeup_service_subscribe(wakeup_handler);
   if (launch_reason() == APP_LAUNCH_WAKEUP) {
     // The app was started by a wakeup
-    commonTextLayer(summary_layer, "You did it!");
+	time_t rawtime;
+	struct tm *timeinfo;
+	time ( &rawtime );
+	timeinfo = localtime ( &rawtime );
+  commonTextLayer(summary_layer, goalPhrases[timeinfo->tm_wday]); 
+	commonTextLayer(help_layer, "");
     vibes_double_pulse();
     trashAll();
   }
